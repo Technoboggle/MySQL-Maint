@@ -91,6 +91,8 @@ DELETE_BACKUP_OLDER_THAN_MIN=1440
 D_DELETE_BACKUP_OLDER_THAN_DAYS=6
 # 'weekly'
 W_DELETE_BACKUP_OLDER_THAN_DAYS=30
+# 'monthly'
+M_DELETE_BACKUP_OLDER_THAN_DAYS=365
 
 # Dates format for naming backups
 DATE_FORMAT="%Y-%m-%d_%H-%M" # current
@@ -324,8 +326,10 @@ print_usage()
 	echo ""
 	echo "Command-line options override the script variables"
 	echo ""
-	echo "-b : Perform a backup"
-	echo "-m : Perform maintenance"
+	echo "-b [backup] : Perform a backup"
+        echo "-c [config] : Full path to config file for this run (overrides other switches)"
+	echo "-m [maintainance] : Perform maintenance"
+        echo "-h [help] : Print this help message"
 	echo "-H [host] : IP address or DNS name of the MySQL server (default: 127.0.0.1)"
 	echo "-u [login] : Login (default: root)"
 	echo "-p [password] : Password (default: admin)"
@@ -333,7 +337,8 @@ print_usage()
 	echo "-S [socket] : MySQL socket (default: no socket defined)"
 	echo "-d [directory] : Backups folder (default: ${HOME}/backup/mysql)"
 	echo "-n [name] : Backups folder for this server (defaults to server name)"
-	echo "-l : Keep a copy of the latest backup for each database (default: yes)"
+	echo "-l [latest] : Keep a copy of the latest backup for each database (default: yes)"
+        echo "-v [version] : Print out current version number"
 }
 
 print_version()
@@ -344,7 +349,7 @@ print_version()
 #########################################
 # Part 3 : Process command-line options #
 #########################################
-while getopts "bmhvlH:S:u:p:P:d:n:c" option
+while getopts "bmhvlH:S:u:p:P:d:n:c:" option
 do
 	case $option in
 		v)	# Version
@@ -741,6 +746,7 @@ db_backup()
 	local monthlyfile="${monthlydir}/${database}_`${DATE} +"$M_DATE_FORMAT"`.sql.bz2"
 
 	# current
+        echo ${MYSQLDUMP} $db 
 	CURRENT_FILE=$filename
 	${MYSQLDUMP} $db > ${TEMP_FILE} 2> ${TRASH}
 	if [ "0" -eq "$?" ]; then
@@ -830,6 +836,7 @@ delete_old_backups()
 	${FIND_BIN} ${currentdir} -name "*.sql.bz2" -mmin +${DELETE_BACKUP_OLDER_THAN_MIN} -type f -print -exec rm -f {} \;
 	${FIND_BIN} ${dailydir} -name "*.sql.bz2" -mtime +${D_DELETE_BACKUP_OLDER_THAN_DAYS} -type f -print -exec rm -f {} \;
 	${FIND_BIN} ${weeklydir} -name "*.sql.bz2" -mtime +${W_DELETE_BACKUP_OLDER_THAN_DAYS} -type f -print -exec rm -f {} \;
+        ${FIND_BIN} ${monthlydir} -name "*.sql.bz2" -mtime +${M_DELETE_BACKUP_OLDER_THAN_DAYS} -type f -print -exec rm -f {} \;
 }
 
 
